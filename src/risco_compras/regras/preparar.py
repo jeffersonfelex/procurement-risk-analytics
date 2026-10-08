@@ -1,8 +1,4 @@
-"""Etapas Python das regras que dependem do grafo de vínculos (config: preparar).
-
-Cada função recebe (engine, data_inicio, parametros) e devolve {nome: DataFrame}; a consulta da regra
-usa a tabela com {{dados:nome:colunas}}.
-"""
+"""Etapas Python das regras que usam o grafo de vínculos (config: preparar)."""
 
 from __future__ import annotations
 

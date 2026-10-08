@@ -1,18 +1,4 @@
-"""Base SQLite fictícia de compras de uma empresa, com anomalias plantadas.
-
-Tudo aqui é inventado: empresas, pessoas, CPFs/CNPJs (gerados aleatoriamente, só com dígitos
-verificadores válidos), telefones com DDD 00 e e-mails no domínio .example. Serve para o projeto
-rodar de ponta a ponta sem nenhum dado real.
-
-Além do comportamento "normal", o gerador planta casos conhecidos para cada regra e os registra na
-tabela anomalias_plantadas (regra, id_objeto) — os testes e a demo medem se as regras os encontram.
-Uma parte dos fornecedores tem perfil de risco (compras diretas no limite, concentração em um
-departamento e em dezembro) e é bloqueada mais tarde: é o sinal que o modelo de risco precisa achar.
-
-Exemplo:
-    python -m risco_compras.dados_sinteticos                 # grava dados/exemplo.db
-    python -m risco_compras.dados_sinteticos --semente 7 --fornecedores 800
-"""
+"""Base SQLite fictícia de compras, com anomalias plantadas registradas em anomalias_plantadas."""
 
 from __future__ import annotations
 
@@ -26,7 +12,7 @@ from pathlib import Path
 from .config import BANCO_EXEMPLO
 from .utils.documentos import gerar_cnpj, gerar_cpf
 
-LIMITE_COMPRA_DIRETA = 20_000.00   # acima disso a política de compras exige cotação (ver config/regras.yaml)
+LIMITE_COMPRA_DIRETA = 20_000.00
 INICIO, FIM = date(2021, 1, 1), date(2025, 12, 31)
 
 DEPARTAMENTOS = ["Operações", "TI", "Marketing", "Facilities", "Logística", "Financeiro", "Jurídico", "RH"]
@@ -40,7 +26,6 @@ _NOMES = ["Ana", "Bruno", "Carla", "Diego", "Elisa", "Fábio", "Gabriela", "Heit
           "Lucas", "Marina", "Nelson", "Olívia", "Paulo", "Renata", "Sérgio", "Tânia", "Vítor"]
 _SOBRENOMES = ["Almeida", "Barros", "Campos", "Duarte", "Esteves", "Freitas", "Gomes", "Lima", "Moraes",
                "Nunes", "Pires", "Queiroz", "Rocha", "Silveira", "Teixeira", "Vasconcelos"]
-# categorias que a R1 não analisa (config/categorias_recorrentes.csv): não recebem fracionamento plantado
 CATEGORIAS_RECORRENTES = ("Alimentação",)
 _MOTIVOS_BLOQUEIO = ["inexecução contratual", "fraude documental", "atraso reiterado", "irregularidade fiscal"]
 
@@ -83,7 +68,6 @@ class Gerador:
         "pedidos", "pagamentos", "anomalias_plantadas")})
     contadores: dict[str, int] = field(default_factory=dict)
 
-    # ------------------------------------------------------------ utilitários
     def proximo(self, prefixo: str) -> str:
         self.contadores[prefixo] = self.contadores.get(prefixo, 0) + 1
         return f"{prefixo}-{self.contadores[prefixo]:06d}"
@@ -97,7 +81,6 @@ class Gerador:
     def plantar(self, regra: str, id_objeto: str) -> None:
         self.linhas["anomalias_plantadas"].append((regra, id_objeto))
 
-    # ------------------------------------------------------------ cadastro
     def novo_fornecedor(self, i: int, risco: bool, abertura: date | None = None,
                         capital: float | None = None) -> Fornecedor:
         cnpj = gerar_cnpj(self.rng)
@@ -115,7 +98,6 @@ class Gerador:
         return Fornecedor(cnpj, departamentos, self.rng.sample(CATEGORIAS, self.rng.randint(1, 2)), risco,
                           ativo_desde=self.data_entre(INICIO, date(2024, 6, 30)))
 
-    # ------------------------------------------------------------ movimento
     def pedido(self, f: Fornecedor, data: date, valor: float, departamento: str | None = None,
                categoria: str | None = None, modalidade: str | None = None, id_contrato: str | None = None,
                concorrentes: list[str] | None = None, pagar: bool = True) -> str:
@@ -144,11 +126,11 @@ class Gerador:
         return id_pagamento
 
     def valor_normal(self) -> float:
-        return round(min(10 ** self.rng.gauss(3.7, 0.45), 250_000), 2)   # mediana ~ R$ 5 mil
+        return round(min(10 ** self.rng.gauss(3.7, 0.45), 250_000), 2)
 
     def data_do_pedido(self, f: Fornecedor) -> date:
         data = self.data_entre(f.ativo_desde, FIM - timedelta(days=60))
-        if f.risco and self.rng.random() < 0.35:   # perfil de risco: concentração em dezembro
+        if f.risco and self.rng.random() < 0.35:
             data = date(data.year, 12, self.rng.randint(1, 20))
         return data
 
@@ -168,7 +150,6 @@ def gerar(caminho: str | Path = BANCO_EXEMPLO, semente: int = 42, n_fornecedores
     fornecedores = [g.novo_fornecedor(i, risco=rng.random() < 0.12) for i in range(1, n_fornecedores + 1)]
     cnpjs = [f.cnpj for f in fornecedores]
 
-    # bloqueios: a maioria dos fornecedores de risco é bloqueada em algum momento; alguns normais também
     for f in fornecedores:
         if rng.random() < (0.75 if f.risco else 0.02):
             inicio = g.data_entre(date(2022, 3, 1), date(2025, 10, 31))
@@ -178,7 +159,6 @@ def gerar(caminho: str | Path = BANCO_EXEMPLO, semente: int = 42, n_fornecedores
             g.linhas["bloqueios"].append((len(g.linhas["bloqueios"]) + 1, f.cnpj, inicio.isoformat(),
                                           publicacao.isoformat(), fim.isoformat(), rng.choice(_MOTIVOS_BLOQUEIO)))
 
-    # contratos de parte dos fornecedores normais, com pedidos dentro da vigência e do valor
     contratos = []
     for f in rng.sample([f for f in fornecedores if not f.risco and not f.bloqueio], 120):
         inicio = g.data_entre(date(2021, 6, 1), date(2024, 6, 30))
@@ -194,13 +174,12 @@ def gerar(caminho: str | Path = BANCO_EXEMPLO, semente: int = 42, n_fornecedores
             g.pedido(f, g.data_entre(inicio, fim - timedelta(days=30)), valor / n * rng.uniform(0.6, 0.95),
                      departamento=departamento, modalidade="contrato", id_contrato=id_contrato)
 
-    # pedidos avulsos (compra direta ou cotação), fora dos períodos de bloqueio
     for f in fornecedores:
         for _ in range(max(1, int(rng.gauss(18 if f.risco else 14, 5)))):
             data = g.data_do_pedido(f)
             if g.bloqueado_em(f, data):
                 continue
-            if f.risco and rng.random() < 0.6:   # perfil de risco: compra direta logo abaixo do limite
+            if f.risco and rng.random() < 0.6:
                 valor = LIMITE_COMPRA_DIRETA * rng.uniform(0.70, 0.98)
             else:
                 valor = g.valor_normal()
@@ -227,8 +206,6 @@ def _plantar_anomalias(g: Gerador, fornecedores, normais, contratos, funcionario
     rng = g.rng
     escolhidos = iter(rng.sample(normais, 40))
 
-    # R1 fracionamento: 3-4 compras diretas no mesmo mês, departamento e categoria, cada uma abaixo do
-    # limite e somadas acima dele
     for _ in range(8):
         f = next(escolhidos)
         departamento = f.departamentos[0]
@@ -239,13 +216,11 @@ def _plantar_anomalias(g: Gerador, fornecedores, normais, contratos, funcionario
                      departamento=departamento, categoria=categoria, modalidade="compra_direta")
         g.plantar("R1", f"{f.cnpj}|{departamento}|{categoria}|{mes:%Y-%m}")
 
-    # R2 pedido com fornecedor bloqueado
     bloqueados = [f for f in fornecedores if f.bloqueio and f.bloqueio[0] >= date(2023, 1, 1)]
     for f in rng.sample(bloqueados, min(6, len(bloqueados))):
         data = g.data_entre(f.bloqueio[0], min(f.bloqueio[1], FIM - timedelta(days=60)))
         g.plantar("R2", g.pedido(f, data, g.valor_normal(), modalidade="compra_direta"))
 
-    # R3 concorrentes vinculados: duas empresas da mesma cotação com sócio, telefone ou e-mail em comum
     socios_por_cnpj = {}
     for cnpj, cpf, nome in g.linhas["socios"]:
         socios_por_cnpj.setdefault(cnpj, []).append((cpf, nome))
@@ -263,7 +238,6 @@ def _plantar_anomalias(g: Gerador, fornecedores, normais, contratos, funcionario
         g.plantar("R3", g.linhas["cotacoes"][-1][0])
     g.linhas["fornecedores"] = [tuple(v) for v in cadastro.values()]
 
-    # R4 conflito de interesse: funcionário é sócio de fornecedor que vende para o seu departamento
     for cpf, nome, departamento in rng.sample(funcionarios, 5):
         f = next(escolhidos)
         g.linhas["socios"].append((f.cnpj, cpf, nome))
@@ -271,7 +245,6 @@ def _plantar_anomalias(g: Gerador, fornecedores, normais, contratos, funcionario
                  departamento=departamento, modalidade="compra_direta")
         g.plantar("R4", f"{cpf}|{f.cnpj}|{departamento}")
 
-    # R5 pago acima do contratado e R7 pedido fora da vigência do contrato
     vigentes = [c for c in contratos if date(2023, 6, 1) <= c[5] <= date(2025, 6, 30)]
     amostra = rng.sample(vigentes, min(10, len(vigentes)))
     for id_contrato, f, departamento, valor, inicio, fim in amostra[:5]:
@@ -283,15 +256,12 @@ def _plantar_anomalias(g: Gerador, fornecedores, normais, contratos, funcionario
         g.plantar("R7", g.pedido(f, data, valor * 0.05, departamento=departamento,
                                  modalidade="contrato", id_contrato=id_contrato))
 
-    # R6 pagamento em duplicidade: mesma nota fiscal e valor pagos de novo dias depois (fora de contratos,
-    # para a duplicidade não se misturar com a R5)
     avulsos = {p[0] for p in g.linhas["pedidos"] if p[6] != "contrato"}
     candidatos = [p for p in g.linhas["pagamentos"] if p[3] >= "2023-01-01" and p[1] in avulsos]
     for id_pagamento, id_pedido, cnpj, data, valor, nota in rng.sample(candidatos, 6):
         repetido = date.fromisoformat(data) + timedelta(days=rng.randint(2, 10))
         g.plantar("R6", g.pagamento(id_pedido, cnpj, repetido, valor, nota_fiscal=nota))
 
-    # R8 empresa recém-aberta e com capital incompatível com o volume vendido
     for i in range(5):
         primeiro = g.data_entre(date(2023, 3, 1), date(2025, 6, 30))
         f = g.novo_fornecedor(n_fornecedores + 1 + i, risco=False, capital=rng.choice((1_000.0, 2_000.0, 5_000.0)),

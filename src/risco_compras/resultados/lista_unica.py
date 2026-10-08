@@ -1,24 +1,4 @@
-"""Lista única de alertas: todas as regras num só lugar, com o desfecho do analista.
-
-Junta o arquivo mais recente de cada regra ativa (dados/resultados/alertas_<ID>_<carimbo>.csv) em
-casos — um caso é um fornecedor (CNPJ) num departamento — e grava:
-
-  dados/resultados/lista_unica_<carimbo>.xlsx   planilha para os analistas (abas Como usar, Resumo,
-                                                Casos, Roteiro, Fornecedores, Alertas); preenchem as
-                                                colunas amarelas da aba Casos;
-  dados/resultados/painel/*.parquet e *.csv     tabelas de nome fixo para um painel (Power BI etc.);
-  dados/resultados/desfechos/                   base de desfechos (o que já foi concluído), histórico
-                                                de registros e data em que cada caso apareceu.
-
-Ciclo: montar a lista → analistas preenchem → registrar os desfechos → a próxima lista já vem com
-o que foi concluído. Os desfechos viram rótulos para modelos (Procedente = 1, Improcedente = 0)
-e medem a taxa de acerto de cada regra.
-
-Exemplos:
-    python -m risco_compras.resultados.lista_unica                      # monta a lista
-    python -m risco_compras.resultados.lista_unica --registrar          # registra a lista mais recente
-    python -m risco_compras.resultados.lista_unica --registrar caminho.xlsx
-"""
+"""Lista única de casos: junta os alertas das regras, gera a planilha de análise e registra os desfechos."""
 
 from __future__ import annotations
 
@@ -32,7 +12,6 @@ import pandas as pd
 
 from ..config import RAIZ, carregar_parametros
 
-# ---------------------------------------------------------------- vocabulário do desfecho
 SITUACOES = ["Pendente", "Em análise", "Procedente", "Improcedente", "Fora de escopo"]
 MOTIVOS = ["Erro de cadastro ou de dado", "Situação regular ou prevista na política", "Vínculo não confirmado",
            "Valor irrelevante", "Já tratado em outro caso", "Outro"]
@@ -46,7 +25,7 @@ TITULOS_DESFECHO = {"situacao": "Situação", "motivo": "Motivo (se improcedente
 PASTA_PADRAO = RAIZ / "dados" / "resultados"
 _ARQUIVO_ALERTAS = re.compile(r"^alertas_(?P<regra>R\w*?)_(?P<carimbo>\d{8}_\d{4,6})\.csv$")
 _PAR_VINCULADO = re.compile(r"Vínculo com (\d{14})")
-REGRA_DE_PARES = "R3"   # regra que aponta um PAR de empresas (o alerta é espelhado para a segunda)
+REGRA_DE_PARES = "R3"
 
 
 def pastas(pasta: Path | None = None) -> dict[str, Path]:
@@ -60,7 +39,6 @@ def config_lote(parametros: dict | None = None) -> dict:
             "maiores_valores": int(conf.get("maiores_valores", 10))}
 
 
-# ---------------------------------------------------------------- leitura dos alertas
 def regras_ativas() -> dict[str, dict]:
     return {rid: conf for rid, conf in carregar_parametros().get("regras", {}).items() if conf.get("ativa", True)}
 
@@ -104,9 +82,7 @@ def carregar_alertas(arquivos: dict[str, Path], nomes_fornecedores: dict[str, st
 
 
 def espelhar_pares(alertas: pd.DataFrame) -> pd.DataFrame:
-    """A regra de pares aponta DUAS empresas ligadas e grava o alerta uma vez, na empresa "a" (a outra fica
-    na evidência). Na lista as duas viram caso: acrescenta a linha da empresa "b", com a evidência apontando
-    para a "a" e espelho=True (não conta como alerta novo da regra)."""
+    """Duplica o alerta da regra de pares para a segunda empresa do par (espelho=True)."""
     pares = alertas[(alertas["id_regra"] == REGRA_DE_PARES) & ~alertas["espelho"]]
     linhas = []
     for _, alerta in pares.iterrows():
@@ -124,7 +100,6 @@ def espelhar_pares(alertas: pd.DataFrame) -> pd.DataFrame:
     return pd.concat([alertas, pd.DataFrame(linhas)], ignore_index=True)
 
 
-# ---------------------------------------------------------------- casos e fornecedores
 def nota_combinada(notas_por_regra: list[float]) -> float:
     """1 − ∏(1 − nota): cada regra é um indício independente; mais regras, nota maior (máx. 1)."""
     produto = 1.0
@@ -216,7 +191,6 @@ def atualizar_vistos(pasta_desfechos: Path, casos: pd.DataFrame) -> pd.DataFrame
     return vistos
 
 
-# ---------------------------------------------------------------- planilha
 def gravar_excel(caminho: Path, casos: pd.DataFrame, alertas: pd.DataFrame, fornecedores: pd.DataFrame,
                  regras: pd.DataFrame, ids: list[str], lote: dict) -> None:
     from openpyxl import Workbook
@@ -234,7 +208,6 @@ def gravar_excel(caminho: Path, casos: pd.DataFrame, alertas: pd.DataFrame, forn
 
     wb = Workbook()
 
-    # ---------- Casos (montada antes porque as outras abas fazem referência às colunas dela)
     ws = wb.active
     ws.title = "Casos"
     colunas = ["prioridade", "lote", "nota_combinada", "qt_regras", "regras", *ids, "documento", "fornecedor",
@@ -295,7 +268,6 @@ def gravar_excel(caminho: Path, casos: pd.DataFrame, alertas: pd.DataFrame, forn
     def faixa(coluna: str) -> str:
         return f"Casos!${letra[coluna]}$2:${letra[coluna]}${ultima}"
 
-    # ---------- Resumo (fórmulas: atualiza sozinho conforme os analistas preenchem)
     rs = wb.create_sheet("Resumo", 0)
     rs["A1"] = "Lista única de alertas — resumo"
     rs["A1"].font = titulo
@@ -345,7 +317,6 @@ def gravar_excel(caminho: Path, casos: pd.DataFrame, alertas: pd.DataFrame, forn
     for coluna, largura in zip("ABCDEFGHI", (16, 52, 8, 34, 9, 12, 12, 13, 12)):
         rs.column_dimensions[coluna].width = largura
 
-    # ---------- Como usar
     cu = wb.create_sheet("Como usar", 0)
     textos = [
         ("Lista única de alertas — como usar", titulo),
@@ -396,7 +367,6 @@ def gravar_excel(caminho: Path, casos: pd.DataFrame, alertas: pd.DataFrame, forn
     for coluna in "BCDEF":
         cu.column_dimensions[coluna].width = 30
 
-    # ---------- Fornecedores (contagens de desfecho por fórmula)
     fs = wb.create_sheet("Fornecedores")
     cab_f = ["CNPJ", "Fornecedor", "Nº de casos", "Regras", "Nº de regras", "Maior nota",
              "Soma dos maiores valores (R$)", "Casos procedentes", "Casos improcedentes"]
@@ -417,7 +387,6 @@ def gravar_excel(caminho: Path, casos: pd.DataFrame, alertas: pd.DataFrame, forn
     fs.freeze_panes = "C2"
     fs.auto_filter.ref = f"A1:I{max(len(fornecedores) + 1, 2)}"
 
-    # ---------- Roteiro (config/roteiro_analise.yaml: o que verificar em cada regra)
     guia = roteiros()
     ro = wb.create_sheet("Roteiro", wb.sheetnames.index("Casos") + 1)
     cab_r = ["Regra", "Nome", "O que o alerta indica", "O que verificar", "Falsos positivos comuns (e Motivo)"]
@@ -437,7 +406,6 @@ def gravar_excel(caminho: Path, casos: pd.DataFrame, alertas: pd.DataFrame, forn
         ro.column_dimensions[coluna].width = largura
     ro.freeze_panes = "C2"
 
-    # ---------- Alertas (um por linha, como saíram das regras)
     al = wb.create_sheet("Alertas")
     col_a = ["chave_caso", "id_regra", "versao_regra", "pontuacao", "valor_envolvido", "documento", "departamento",
              "tipo_objeto", "id_objeto", "classe", "evidencia", "data_execucao"]
@@ -461,7 +429,6 @@ def gravar_excel(caminho: Path, casos: pd.DataFrame, alertas: pd.DataFrame, forn
     wb.save(caminho)
 
 
-# ---------------------------------------------------------------- painel
 def gravar_painel(pasta_painel: Path, casos: pd.DataFrame, alertas: pd.DataFrame, fornecedores: pd.DataFrame,
                   desfechos: pd.DataFrame) -> None:
     pasta_painel.mkdir(parents=True, exist_ok=True)
@@ -474,7 +441,7 @@ def gravar_painel(pasta_painel: Path, casos: pd.DataFrame, alertas: pd.DataFrame
             tabela.astype({c: "string" for c in tabela.columns if tabela[c].dtype == object}).to_parquet(
                 pasta_painel / f"{nome}.parquet", index=False)
         except ImportError:
-            pass   # sem pyarrow: fica só o CSV
+            pass
 
 
 def roteiros(caminho: Path | None = None) -> dict[str, dict]:
@@ -499,7 +466,6 @@ def nomes_fornecedores() -> dict[str, str]:
     return dict(zip(tabela["cnpj"].astype(str), tabela["razao_social"].astype(str)))
 
 
-# ---------------------------------------------------------------- montar
 def montar(pasta: Path | None = None, usar_banco: bool = True) -> Path:
     p = pastas(pasta)
     ativas = regras_ativas()
@@ -512,7 +478,7 @@ def montar(pasta: Path | None = None, usar_banco: bool = True) -> Path:
     if usar_banco:
         try:
             nomes = nomes_fornecedores()
-        except Exception as erro:  # noqa: BLE001 — sem banco, segue sem os nomes
+        except Exception as erro:
             print(f"  aviso: nomes dos fornecedores indisponíveis ({type(erro).__name__})", flush=True)
     alertas = carregar_alertas(arquivos, nomes)
     if alertas.empty:
@@ -542,7 +508,6 @@ def montar(pasta: Path | None = None, usar_banco: bool = True) -> Path:
     return destino
 
 
-# ---------------------------------------------------------------- registrar desfechos
 def lista_mais_recente(pasta: Path) -> Path:
     arquivos = [a for a in sorted(Path(pasta).glob("lista_unica_*.xlsx")) if not a.name.startswith("~$")]
     if not arquivos:
@@ -551,7 +516,7 @@ def lista_mais_recente(pasta: Path) -> Path:
 
 
 def _texto(valor) -> str:
-    if valor is None or (not isinstance(valor, str) and pd.isna(valor)):   # None, NaN e NaT (data vazia)
+    if valor is None or (not isinstance(valor, str) and pd.isna(valor)):
         return ""
     if isinstance(valor, (datetime, date, pd.Timestamp)):
         return valor.strftime("%Y-%m-%d")

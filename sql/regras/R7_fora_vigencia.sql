@@ -1,5 +1,4 @@
 -- R7 Pedido fora da vigência do contrato
--- Pedido vinculado a um contrato, mas emitido antes do início ou depois do fim da vigência.
 SELECT 'pedido'                                                         AS tipo_objeto,
        p.id_pedido                                                      AS id_objeto,
        p.departamento                                                   AS departamento,

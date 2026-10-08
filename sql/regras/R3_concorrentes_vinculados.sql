@@ -1,7 +1,4 @@
 -- R3 Concorrentes vinculados na mesma cotação
--- Duas empresas da mesma cotação ligadas no grafo de vínculos (sócio, e-mail, telefone ou endereço em
--- comum). Os pares vêm da etapa Python (risco_compras.regras.preparar:concorrentes_vinculados).
--- O alerta é gravado na empresa "a" do par; a lista única espelha o caso para a empresa "b".
 WITH pares AS ({{dados:pares_vinculados:cnpj_a,cnpj_b,tipos,peso}})
 SELECT 'cotacao'                                                        AS tipo_objeto,
        c.id_cotacao                                                     AS id_objeto,

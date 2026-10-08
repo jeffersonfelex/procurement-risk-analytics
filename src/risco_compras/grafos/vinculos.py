@@ -1,16 +1,4 @@
-"""Grafo de vínculos entre empresas e pessoas (regras R3 e R4).
-
-As arestas vêm do cadastro, sempre no formato (origem, destino, tipo, peso):
-    pj:<cnpj> ──socio──►    pf:<cpf>        (quadro societário)
-    pj:<cnpj> ──telefone──► tel:<telefone>
-    pj:<cnpj> ──email──►    email:<e-mail>
-    pj:<cnpj> ──endereco──► end:<endereço normalizado>
-
-Duas empresas que disputam a mesma cotação e caem perto no grafo (ligadas por um sócio, telefone,
-e-mail ou endereço em comum) geram alerta de vínculo; um funcionário ligado a um fornecedor gera
-alerta de conflito de interesse. O peso de um caminho é o produto dos pesos das arestas (config/
-pesos_vinculos.csv): um sócio em comum pesa mais que um endereço em comum.
-"""
+"""Grafo de vínculos entre empresas e pessoas (sócios, telefones, e-mails e endereços)."""
 
 from __future__ import annotations
 
@@ -48,11 +36,7 @@ def _descrever(grafo: nx.Graph, caminho: list[str]) -> tuple[list[str], float]:
 
 
 def grupos_vinculados(grafo: nx.Graph, empresas: list[str], max_saltos: int = 2) -> list[dict]:
-    """Pares de empresas ligadas por até `max_saltos` arestas.
-
-    max_saltos=2 captura empresa–sócio–empresa ou empresa–telefone–empresa.
-    Devolve uma lista de {empresa_a, empresa_b, caminho, tipos, peso}.
-    """
+    """Pares de empresas ligadas por até `max_saltos` arestas, com os tipos e o peso do caminho."""
     presentes = [c for c in dict.fromkeys(empresas) if c in grafo]
     pares = []
     for i, empresa_a in enumerate(presentes):
@@ -67,11 +51,7 @@ def grupos_vinculados(grafo: nx.Graph, empresas: list[str], max_saltos: int = 2)
 
 
 def empresas_ligadas(grafo: nx.Graph, pessoa: str, max_saltos: int = 3) -> list[dict]:
-    """Empresas (nós pj:) alcançáveis a partir de uma pessoa em até `max_saltos` arestas.
-
-    1 salto: a pessoa é sócia da empresa. 3 saltos: é sócia de uma empresa que divide telefone,
-    e-mail, endereço ou outro sócio com a empresa.
-    """
+    """Empresas alcançáveis a partir de uma pessoa em até `max_saltos` arestas."""
     if pessoa not in grafo:
         return []
     alcance = nx.single_source_shortest_path(grafo, pessoa, cutoff=max_saltos)

@@ -9,8 +9,8 @@ def _dados():
     pedidos = pd.DataFrame([
         ("11111111", "TI", "c1", "2023-06-10", 100.0, "compra_direta"),
         ("11111111", "TI", "c1", "2023-12-20", 300.0, "cotacao"),
-        ("11111111", "TI", "c1", "2024-02-01", 9999.0, "compra_direta"),   # depois do corte: não pode entrar
-        ("22222222", "RH", "c2", "2021-01-01", 50.0, "compra_direta"),     # fora da janela de 24 meses
+        ("11111111", "TI", "c1", "2024-02-01", 9999.0, "compra_direta"),
+        ("22222222", "RH", "c2", "2021-01-01", 50.0, "compra_direta"),
         ("33333333", "RH", "c2", "2023-03-01", 80.0, "compra_direta"),
     ], columns=["raiz", "departamento", "categoria", "data", "valor", "modalidade"])
     pedidos["data"] = pd.to_datetime(pedidos["data"])
@@ -22,9 +22,9 @@ def _dados():
 def test_variaveis_usam_so_o_passado_dentro_da_janela():
     pedidos, fornecedores = _dados()
     base = rf.variaveis_no_corte(pedidos, fornecedores, CORTE).set_index("raiz")
-    assert set(base.index) == {"11111111", "33333333"}              # 2222 não teve pedido nos 24 meses
+    assert set(base.index) == {"11111111", "33333333"}
     a = base.loc["11111111"]
-    assert a["vl_24m"] == 400.0 and a["vl_max_pedido"] == 300.0     # o pedido de 2024 não vazou
+    assert a["vl_24m"] == 400.0 and a["vl_max_pedido"] == 300.0
     assert a["pct_direta"] == 0.25 and a["pct_dezembro"] == 0.75 and a["hhi_departamentos"] == 1.0
     assert a["log_capital"] == 5.0
 
@@ -35,7 +35,7 @@ def test_rotulo_na_janela_e_exclusao_de_quem_ja_estava_bloqueado():
     bloqueios = pd.DataFrame({"raiz": ["11111111", "33333333"],
                               "data_inicio": pd.to_datetime(["2024-06-01", "2023-11-01"])})
     rotulada = rf.rotular(base, bloqueios, CORTE).set_index("raiz")
-    assert list(rotulada.index) == ["11111111"]                    # 3333 já estava bloqueada no corte
+    assert list(rotulada.index) == ["11111111"]
     assert rotulada.loc["11111111", "y"] == 1
     fora_da_janela = bloqueios.assign(data_inicio=pd.to_datetime(["2025-02-01", "2023-11-01"]))
     assert rf.rotular(base, fora_da_janela, CORTE)["y"].sum() == 0

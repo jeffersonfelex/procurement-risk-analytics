@@ -1,5 +1,4 @@
 -- R5 Pago acima do valor do contrato
--- Soma dos pagamentos dos pedidos de um contrato acima do valor contratado mais a tolerância.
 SELECT 'contrato'                                                       AS tipo_objeto,
        c.id_contrato                                                    AS id_objeto,
        c.departamento                                                   AS departamento,

@@ -1,11 +1,4 @@
-"""Executa regras e grava os alertas em dados/resultados.
-
-Exemplos:
-    python -m risco_compras.regras.executar --todas
-    python -m risco_compras.regras.executar --regra R2
-    python -m risco_compras.regras.executar --regra R3 --mostrar-sql
-    python -m risco_compras.regras.executar --regra R4 --detalhes   (rastreamento completo do erro)
-"""
+"""Executa as regras e grava os alertas em dados/resultados."""
 
 from __future__ import annotations
 
@@ -23,10 +16,7 @@ from .base import Regra, carregar_regras
 
 def executar_regras(regras: list[Regra], eng: Engine, data_inicio: str, pasta_saida: Path,
                     detalhes: bool = False) -> dict[str, pd.DataFrame]:
-    """Roda cada regra, grava alertas_<ID>_<carimbo>.csv e devolve {id: alertas}.
-
-    Uma regra com erro não derruba as outras (a menos que `detalhes`, que repropaga o erro).
-    """
+    """Roda cada regra e grava alertas_<ID>_<carimbo>.csv; uma regra com erro não derruba as outras."""
     pasta_saida.mkdir(parents=True, exist_ok=True)
     carimbo = datetime.now().strftime("%Y%m%d_%H%M%S")
     resultados = {}

@@ -1,14 +1,4 @@
-"""Definição de regra e formato padrão dos alertas.
-
-Toda consulta em sql/regras devolve as colunas de COLUNAS_ALERTA. Isso permite empilhar os alertas
-de todas as regras numa única tabela, montar a lista única de casos, alimentar um painel e registrar
-o desfecho de cada caso (ciclo de retorno que calibra as regras e rotula o modelo).
-
-Marcadores aceitos nas consultas, resolvidos antes de enviar ao banco:
-    {{csv:nome:col1,col2}}    tabela pequena mantida pela equipe em config/<nome>.csv (separador ;)
-    {{dados:nome:col1,col2}}  tabela calculada em Python pela etapa `preparar` da regra (ex.: grafo)
-Assim a consulta usa listas e resultados de Python sem precisar gravar nada no banco analisado.
-"""
+"""Definição de regra, marcadores {{csv:...}} e {{dados:...}} e formato padrão dos alertas."""
 
 from __future__ import annotations
 
@@ -27,14 +17,14 @@ from ..config import RAIZ
 from ..utils.documentos import normalizar_cnpj
 
 COLUNAS_ALERTA = [
-    "id_regra",         # ex.: R2
-    "tipo_objeto",      # pedido | pagamento | contrato | cotacao | fornecedor | grupo_de_pedidos
-    "id_objeto",        # identificador do objeto na base analisada
-    "departamento",     # área compradora responsável
-    "cnpj_fornecedor",  # 14 dígitos
-    "valor_envolvido",  # R$ do objeto
-    "pontuacao",        # 0 a 1; regras simples usam 1
-    "evidencia",        # texto curto que o analista lê primeiro; começa com [classe] quando houver
+    "id_regra",
+    "tipo_objeto",
+    "id_objeto",
+    "departamento",
+    "cnpj_fornecedor",
+    "valor_envolvido",
+    "pontuacao",
+    "evidencia",
 ]
 
 _PARAMETRO_SQL = re.compile(r"(?<!:):([A-Za-z_]\w*)")
@@ -63,11 +53,7 @@ def _valor_sql(valor) -> str:
 
 
 def tabela_em_sql(registros: list[tuple], colunas: list[str]) -> str:
-    """Linhas Python → tabela derivada SQL (VALUES), com as colunas nomeadas.
-
-    `SELECT column1 AS a, ... FROM (VALUES (...), ...)` funciona em SQLite e PostgreSQL. Sem linhas,
-    devolve uma tabela vazia com as colunas certas, para a consulta continuar válida.
-    """
+    """Linhas Python → tabela derivada SQL (VALUES), compatível com SQLite e PostgreSQL."""
     if not registros:
         return "SELECT " + ", ".join(f"NULL AS {c}" for c in colunas) + " WHERE 1 = 0"
     selecao = ", ".join(f"column{i + 1} AS {c}" for i, c in enumerate(colunas))
@@ -118,7 +104,7 @@ class Regra:
     parametros: dict = field(default_factory=dict)
     ativa: bool = True
     versao: str = "1.0"
-    preparar: str | None = None   # "modulo:funcao" que devolve {nome: DataFrame} para {{dados:...}}
+    preparar: str | None = None
 
     @property
     def caminho_sql(self) -> Path:

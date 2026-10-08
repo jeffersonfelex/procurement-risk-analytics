@@ -4,17 +4,17 @@ from risco_compras.grafos.vinculos import empresas_ligadas, grupos_vinculados, m
 
 ARESTAS = pd.DataFrame([
     ("pj:A", "pf:1", "socio", 1.0),
-    ("pj:B", "pf:1", "socio", 1.0),        # A e B: sócio em comum
+    ("pj:B", "pf:1", "socio", 1.0),
     ("pj:B", "tel:99", "telefone", 0.7),
-    ("pj:C", "tel:99", "telefone", 0.7),   # B e C: telefone em comum
-    ("pj:D", "pf:2", "socio", 1.0),        # D isolada
+    ("pj:C", "tel:99", "telefone", 0.7),
+    ("pj:D", "pf:2", "socio", 1.0),
 ], columns=["origem", "destino", "tipo", "peso"])
 
 
 def test_pares_vinculados_ate_dois_saltos_com_peso():
     grafo = montar_grafo(ARESTAS)
     pares = {(p["empresa_a"], p["empresa_b"]): p for p in grupos_vinculados(grafo, ["pj:A", "pj:B", "pj:C", "pj:D"])}
-    assert set(pares) == {("pj:A", "pj:B"), ("pj:B", "pj:C")}   # A–C precisa de 4 saltos
+    assert set(pares) == {("pj:A", "pj:B"), ("pj:B", "pj:C")}
     assert pares[("pj:A", "pj:B")]["tipos"] == ["socio", "socio"] and pares[("pj:A", "pj:B")]["peso"] == 1.0
     assert pares[("pj:B", "pj:C")]["peso"] == 0.49
 

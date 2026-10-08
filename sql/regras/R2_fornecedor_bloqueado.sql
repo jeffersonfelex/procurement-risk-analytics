@@ -1,5 +1,4 @@
 -- R2 Pedido a fornecedor bloqueado
--- Pedido emitido durante o período de bloqueio do fornecedor (cadastro de impedidos).
 SELECT 'pedido'                                                AS tipo_objeto,
        p.id_pedido                                             AS id_objeto,
        p.departamento                                          AS departamento,

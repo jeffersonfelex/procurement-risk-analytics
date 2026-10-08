@@ -1,4 +1,4 @@
-"""Engine SQLAlchemy reutilizável e mensagens curtas para erros de banco."""
+"""Engine SQLAlchemy e mensagens curtas para erros de banco."""
 
 from __future__ import annotations
 
@@ -17,11 +17,7 @@ def engine(url: str | None = None) -> Engine:
 
 
 def causa_do_erro(erro: BaseException) -> BaseException:
-    """Desce pela cadeia pandas → SQLAlchemy → driver e devolve o erro do banco.
-
-    O pandas embrulha o erro como "Execution failed on sql '<consulta inteira>': <erro>", e o
-    SQLAlchemy guarda o erro do driver em .orig: sem descer a cadeia, só se vê o começo da consulta.
-    """
+    """Desce pela cadeia pandas → SQLAlchemy → driver e devolve o erro original do banco."""
     atual, vistos = erro, set()
     while id(atual) not in vistos:
         vistos.add(id(atual))

@@ -19,7 +19,7 @@ def pasta_alertas(tmp_path):
     _alertas("R1", [{"id_objeto": "g1", "cnpj_fornecedor": CNPJ_A, "pontuacao": 0.5, "valor_envolvido": 30000}]
              ).to_csv(tmp_path / "alertas_R1_20250101_100000.csv", sep=";", index=False)
     _alertas("R1", [{"id_objeto": "velho", "cnpj_fornecedor": CNPJ_C}]
-             ).to_csv(tmp_path / "alertas_R1_20240101_100000.csv", sep=";", index=False)   # mais antigo: ignorado
+             ).to_csv(tmp_path / "alertas_R1_20240101_100000.csv", sep=";", index=False)
     _alertas("R2", [{"id_objeto": "p1", "cnpj_fornecedor": CNPJ_A, "pontuacao": 0.6}]
              ).to_csv(tmp_path / "alertas_R2_20250101_100000.csv", sep=";", index=False)
     _alertas("R3", [{"id_objeto": "COT-1", "cnpj_fornecedor": CNPJ_A, "pontuacao": 0.7, "tipo_objeto": "cotacao",
@@ -43,7 +43,7 @@ def test_ultimos_arquivos_pega_o_carimbo_mais_recente(pasta_alertas):
 def test_casos_combinam_regras_e_espelham_pares(pasta_alertas):
     arquivos = lu.ultimos_arquivos(pasta_alertas, ["R1", "R2", "R3"])
     alertas = lu.carregar_alertas(arquivos, {CNPJ_A: "Empresa A"})
-    assert alertas["espelho"].sum() == 1                       # o par da R3 vira caso também para a empresa B
+    assert alertas["espelho"].sum() == 1
     casos = lu.montar_casos(alertas, ["R1", "R2", "R3"], lu.ler_desfechos(pasta_alertas), pd.DataFrame(
         columns=["chave_caso", "primeira_vez"]), {"nota_1": (), "sempre": ("R2",), "maiores_valores": 10})
     primeiro = casos.iloc[0]
@@ -66,13 +66,13 @@ def test_ciclo_planilha_desfecho_e_proxima_lista(pasta_alertas, monkeypatch):
     linha_a = next(r for r in range(2, ws.max_row + 1) if ws.cell(r, col["CNPJ"]).value == CNPJ_A)
     ws.cell(linha_a, col["Situação"]).value = "Procedente"
     linha_b = next(r for r in range(2, ws.max_row + 1) if ws.cell(r, col["CNPJ"]).value == CNPJ_B)
-    ws.cell(linha_b, col["Situação"]).value = "Talvez"            # fora da lista: ignorado e avisado
+    ws.cell(linha_b, col["Situação"]).value = "Talvez"
     wb.save(planilha)
 
     resultado = lu.registrar(planilha, pasta_alertas)
     assert (resultado["novos"], resultado["alterados"]) == (1, 0)
     assert [i["situacao"] for i in resultado["invalidos"]] == ["Talvez"]
-    assert lu.registrar(planilha, pasta_alertas)["iguais"] == 1    # registrar de novo não duplica
+    assert lu.registrar(planilha, pasta_alertas)["iguais"] == 1
 
     proxima = lu.montar(pasta_alertas, usar_banco=False)
     casos = pd.read_excel(proxima, sheet_name="Casos", dtype=str)

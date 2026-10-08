@@ -1,7 +1,4 @@
 -- R1 Fracionamento de compra direta
--- Várias compras diretas do mesmo fornecedor, departamento e categoria no mesmo mês, cada uma abaixo
--- do limite que exige cotação, mas que somadas passam dele. Categorias recorrentes por natureza
--- (config/categorias_recorrentes.csv) ficam de fora.
 SELECT 'grupo_de_pedidos'                                                    AS tipo_objeto,
        p.cnpj || '|' || p.departamento || '|' || p.categoria || '|' || substr(p.data, 1, 7) AS id_objeto,
        p.departamento                                                        AS departamento,

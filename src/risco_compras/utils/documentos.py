@@ -1,8 +1,4 @@
-"""Normalização, validação e pseudonimização de CPF e CNPJ.
-
-A resolução de entidades (ligar a mesma pessoa ou empresa entre bases) começa aqui:
-todas as bases devem gravar CPF com 11 dígitos e CNPJ com 14, sem máscara.
-"""
+"""Normalização, validação, geração e pseudonimização de CPF e CNPJ."""
 
 from __future__ import annotations
 
@@ -64,11 +60,7 @@ def raiz_cnpj(valor: object) -> str:
 
 
 def pseudonimizar(valor: object, segredo: str | None = None) -> str:
-    """Código estável e irreversível para CPF/CNPJ (HMAC-SHA256, 16 caracteres).
-
-    Mantém a possibilidade de cruzar bases no ambiente de desenvolvimento
-    sem expor o documento. O segredo vem de SEGREDO_PSEUDONIMIZACAO no .env.
-    """
+    """Código estável e irreversível para CPF/CNPJ (HMAC-SHA256, 16 caracteres)."""
     segredo = segredo or os.getenv("SEGREDO_PSEUDONIMIZACAO")
     if not segredo:
         raise RuntimeError("Defina SEGREDO_PSEUDONIMIZACAO no .env")

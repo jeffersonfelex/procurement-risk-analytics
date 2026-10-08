@@ -1,7 +1,4 @@
 -- R4 Conflito de interesse
--- Funcionário ligado (sócio, ou sócio de empresa que divide contato com o fornecedor) a fornecedor que
--- recebeu pedidos. Nota cheia quando o pedido é do departamento do próprio funcionário.
--- As ligações vêm da etapa Python (risco_compras.regras.preparar:funcionarios_ligados).
 WITH ligados AS ({{dados:funcionarios_ligados:cnpj,cpf,nome_funcionario,departamento_funcionario,vinculo,peso}})
 SELECT 'fornecedor'                                                     AS tipo_objeto,
        l.cpf || '|' || p.cnpj || '|' || p.departamento                  AS id_objeto,

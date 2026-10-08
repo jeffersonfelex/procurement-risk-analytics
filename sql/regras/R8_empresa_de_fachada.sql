@@ -1,6 +1,4 @@
 -- R8 Fornecedor recém-aberto ou com capital incompatível
--- Sinais de empresa sem capacidade operacional: primeiro pedido poucos meses depois da abertura e/ou
--- capital social muito pequeno perto do que vendeu no primeiro ano. Cada sinal soma 0,5 na nota.
 WITH primeiro AS (
     SELECT p.cnpj, MIN(p.data) AS primeiro_pedido
       FROM pedidos p

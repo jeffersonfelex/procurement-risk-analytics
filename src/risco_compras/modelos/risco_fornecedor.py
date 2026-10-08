@@ -1,21 +1,7 @@
-"""Modelo de risco de fornecedor: quais fornecedores ativos serão bloqueados nos próximos 12 meses?
+"""Modelo de risco de fornecedor: chance de bloqueio nos 12 meses seguintes a cada data de corte.
 
-Desenho, pensado para não vazar informação do futuro:
-  unidade      CNPJ raiz (8 dígitos) — bloqueio de uma filial vale para a empresa;
-  população    em cada data de corte (1º de janeiro), as empresas com pedido nos 24 meses anteriores e sem
-               bloqueio iniciado antes do corte (quem já foi bloqueado não é mais "previsão");
-  variáveis    calculadas só com pedidos anteriores ao corte;
-  rótulo       bloqueio com início em [corte, corte + 12 meses);
-  validação    temporal: treina nos cortes antigos e testa no último — nunca embaralha o tempo;
-  métricas     para classes desbalanceadas: average precision (área sob a curva precisão-revocação),
-               ROC-AUC, precisão nos k primeiros e lift sobre a prevalência, sempre ao lado de uma linha de
-               base ingênua (ordenar por valor comprado), para mostrar quanto o modelo acrescenta.
-
-O relatório sai agregado (sem CNPJ), em dados/resultados/modelo_risco_<carimbo>.md e .json.
-
-Exemplo:
-    python -m risco_compras.modelos.risco_fornecedor
-    python -m risco_compras.modelos.risco_fornecedor --cortes 2023-01-01 2024-01-01 2025-01-01
+As variáveis usam só pedidos anteriores ao corte, quem já estava bloqueado sai da base e a
+validação é temporal (treina nos cortes antigos e testa no último).
 """
 
 from __future__ import annotations
@@ -42,7 +28,7 @@ MESES_HISTORICO = 24
 MESES_HORIZONTE = 12
 CORTES_PADRAO = ("2023-01-01", "2024-01-01", "2025-01-01")
 
-VARIAVEIS = {   # nome: descrição (lista congelada: nada é escolhido olhando o teste)
+VARIAVEIS = {
     "vl_24m": "Valor comprado nos 24 meses antes do corte (R$)",
     "vl_12m": "Valor comprado nos 12 meses antes do corte (R$)",
     "crescimento": "vl_12m ÷ valor dos 12 meses anteriores (+1)",
@@ -62,7 +48,6 @@ VARIAVEIS = {   # nome: descrição (lista congelada: nada é escolhido olhando 
 }
 
 
-# ---------------------------------------------------------------- dados
 def carregar(eng=None) -> dict[str, pd.DataFrame]:
     eng = eng or engine()
     with eng.connect() as conexao:
@@ -145,7 +130,6 @@ def montar_base(dados: dict[str, pd.DataFrame], cortes=CORTES_PADRAO) -> pd.Data
     return pd.concat(partes, ignore_index=True)
 
 
-# ---------------------------------------------------------------- modelo e avaliação
 def ajustar(treino: pd.DataFrame) -> Pipeline:
     modelo = Pipeline([
         ("imputar", SimpleImputer(strategy="median")),

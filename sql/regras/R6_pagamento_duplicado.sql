@@ -1,6 +1,4 @@
 -- R6 Pagamento em duplicidade
--- Segundo pagamento ao mesmo fornecedor, com o mesmo valor e a mesma nota fiscal (ou do mesmo pedido),
--- poucos dias depois do primeiro. O alerta aponta o pagamento repetido (o mais recente).
 SELECT 'pagamento'                                                      AS tipo_objeto,
        b.id_pagamento                                                   AS id_objeto,
        p.departamento                                                   AS departamento,

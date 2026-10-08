@@ -1,13 +1,4 @@
-"""Demonstração de ponta a ponta sobre a base sintética.
-
-    1. gera dados/exemplo.db (se ainda não existir, ou com --recriar);
-    2. executa todas as regras ativas e mede quantas anomalias plantadas cada uma encontrou;
-    3. monta a lista única de casos (planilha + tabelas do painel);
-    4. avalia o modelo de risco de fornecedor fora do tempo.
-
-Exemplo:
-    python -m risco_compras.demo --recriar
-"""
+"""Demonstração de ponta a ponta: base sintética → regras → lista única → modelo."""
 
 from __future__ import annotations
 
