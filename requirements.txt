@@ -1,0 +1,18 @@
+# Núcleo
+pandas>=2.1
+numpy>=1.26
+sqlalchemy>=2.0
+pyyaml>=6.0
+python-dotenv>=1.0
+openpyxl>=3.1          # planilha da lista única
+pyarrow>=14.0          # tabelas do painel em parquet (opcional: sem ele, só CSV)
+
+# Grafos e modelos
+networkx>=3.2
+scikit-learn>=1.4
+
+# Qualidade
+pytest>=8.0
+
+# Outros bancos (opcional): DB_URL no .env com o driver correspondente
+# psycopg[binary]>=3.1   # PostgreSQL

@@ -1,0 +1,5 @@
+tipo;peso;descricao
+socio;1.0;Sócio em comum (ou o funcionário é sócio)
+email;0.8;E-mail de contato em comum
+telefone;0.7;Telefone em comum
+endereco;0.5;Endereço em comum (normalizado)

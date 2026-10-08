@@ -1,0 +1,45 @@
+# Roteiro de análise por regra: vai para a aba Roteiro da lista única. A equipe pode editar.
+R1:
+  indica: Várias compras diretas pequenas do mesmo fornecedor e objeto, no mesmo mês, que juntas passariam
+    do limite que exige cotação — possível divisão proposital para fugir da concorrência.
+  verificar: Se as compras eram previsíveis e poderiam ter sido feitas de uma vez; quem aprovou cada pedido;
+    se houve cotação informal; se o mesmo padrão se repete em outros meses.
+  falsos_positivos: Demanda realmente imprevisível ou emergencial (Situação regular ou prevista na política);
+    categoria recorrente por natureza (incluir em config/categorias_recorrentes.csv).
+R2:
+  indica: Pedido emitido enquanto o fornecedor estava bloqueado para novas contratações.
+  verificar: Data do bloqueio e data em que o comprador consultou o cadastro; se o pedido decorre de contrato
+    anterior ao bloqueio; quem aprovou.
+  falsos_positivos: Bloqueio cadastrado com data retroativa; pedido de contrato firmado antes do bloqueio e
+    permitido pela política (Situação regular ou prevista na política).
+R3:
+  indica: Duas empresas que disputaram a mesma cotação têm sócio, telefone, e-mail ou endereço em comum —
+    possível conluio ou proposta de cobertura.
+  verificar: Proximidade dos valores propostos; se uma empresa só aparece para perder; histórico das duas
+    em outras cotações; documentos com a mesma formatação ou autoria.
+  falsos_positivos: Grupo econômico declarado; escritório de contabilidade ou coworking em comum (Vínculo não
+    confirmado).
+R4:
+  indica: Funcionário é sócio (ou ligado a sócio) de fornecedor que recebeu pedidos, com nota maior quando o
+    pedido é do departamento do próprio funcionário.
+  verificar: Se o vínculo foi declarado; se o funcionário participou da solicitação, cotação ou aprovação;
+    preços praticados frente a outros fornecedores.
+  falsos_positivos: Homônimo ou documento errado no cadastro (Erro de cadastro ou de dado); vínculo declarado e
+    funcionário sem participação na compra.
+R5:
+  indica: A soma paga nos pedidos do contrato passou do valor contratado além da tolerância.
+  verificar: Aditivos de valor não cadastrados; reajustes previstos; pagamentos lançados no contrato errado.
+  falsos_positivos: Aditivo assinado mas não registrado (Erro de cadastro ou de dado); reajuste contratual.
+R6:
+  indica: Mesmo valor pago duas vezes ao mesmo fornecedor, com a mesma nota fiscal ou para o mesmo pedido.
+  verificar: Comprovantes dos dois pagamentos; se houve estorno; conciliação bancária do período.
+  falsos_positivos: Parcelas iguais de um mesmo pedido com notas distintas; pagamento estornado e refeito.
+R7:
+  indica: Pedido vinculado a um contrato fora do período de vigência.
+  verificar: Prorrogação de prazo não cadastrada; data do pedido x data da entrega; se havia contrato novo.
+  falsos_positivos: Prorrogação assinada mas não registrada (Erro de cadastro ou de dado).
+R8:
+  indica: Fornecedor aberto pouco antes de começar a vender e/ou com capital social muito pequeno perto do que
+    vendeu — sinais de empresa sem capacidade operacional.
+  verificar: Endereço e estrutura física; quadro de funcionários; atestados de capacidade; quem indicou a empresa.
+  falsos_positivos: Empresa nova de sócios experientes no ramo; capital desatualizado no cadastro.

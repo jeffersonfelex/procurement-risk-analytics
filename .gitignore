@@ -1,0 +1,23 @@
+# Dados e resultados ficam fora do versionamento (a base sintética é gerada pelo próprio projeto)
+dados/*
+!dados/README.md
+
+# Credenciais
+.env
+
+# Artefatos de modelos
+*.pkl
+*.joblib
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# IDE/OS
+.vscode/
+.idea/
+Thumbs.db
+~$*.xlsx

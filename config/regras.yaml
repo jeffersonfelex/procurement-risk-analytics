@@ -1,0 +1,63 @@
+# Regras de auditoria contínua sobre o ciclo de compras (cotação → pedido → contrato → pagamento).
+# Cada regra é uma consulta em sql/regras que devolve as colunas padrão de alerta
+# (ver src/risco_compras/regras/base.py: COLUNAS_ALERTA). Parâmetros aparecem na consulta como :nome.
+
+padrao:
+  data_inicio: "2023-01-01"          # só analisa movimento a partir desta data
+  pasta_saida: "dados/resultados"
+
+lista_unica:
+  regras_nota_1: ["R4"]              # caso com nota 1 nessas regras entra no lote sugerido
+  regras_sempre: ["R5"]              # todo caso com essas regras entra no lote sugerido
+  maiores_valores: 10                # e os N maiores valores entre os casos com 2+ regras
+
+regras:
+  R1:
+    nome: Fracionamento de compra direta
+    sql: sql/regras/R1_fracionamento.sql
+    versao: "1.1"
+    parametros:
+      limite_compra_direta: 20000.0  # acima disso a política exige cotação
+      minimo_pedidos: 2
+  R2:
+    nome: Pedido a fornecedor bloqueado
+    sql: sql/regras/R2_fornecedor_bloqueado.sql
+    versao: "1.0"
+  R3:
+    nome: Concorrentes vinculados na mesma cotação
+    sql: sql/regras/R3_concorrentes_vinculados.sql
+    preparar: risco_compras.regras.preparar:concorrentes_vinculados
+    versao: "1.0"
+    parametros:
+      max_saltos: 2
+  R4:
+    nome: Conflito de interesse (funcionário ligado ao fornecedor)
+    sql: sql/regras/R4_conflito_interesse.sql
+    preparar: risco_compras.regras.preparar:funcionarios_ligados
+    versao: "1.0"
+    parametros:
+      max_saltos: 3
+      peso_outro_departamento: 0.6   # funcionário de outro departamento: nota menor
+  R5:
+    nome: Pago acima do valor do contrato
+    sql: sql/regras/R5_pago_acima_contrato.sql
+    versao: "1.0"
+    parametros:
+      tolerancia: 0.10               # 10% acima do contratado
+  R6:
+    nome: Pagamento em duplicidade
+    sql: sql/regras/R6_pagamento_duplicado.sql
+    versao: "1.0"
+    parametros:
+      janela_dias: 30
+  R7:
+    nome: Pedido fora da vigência do contrato
+    sql: sql/regras/R7_fora_vigencia.sql
+    versao: "1.0"
+  R8:
+    nome: Fornecedor recém-aberto ou com capital incompatível
+    sql: sql/regras/R8_empresa_de_fachada.sql
+    versao: "1.0"
+    parametros:
+      meses_minimos: 6               # primeiro pedido menos de 6 meses depois da abertura
+      fracao_capital: 0.05           # capital social menor que 5% do vendido no primeiro ano
